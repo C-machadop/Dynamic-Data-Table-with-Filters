@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ProductFilter from "./components/ProductFilter";
 import {
   getAveragePrice,
@@ -14,6 +14,8 @@ function App() {
   const [maxPrice, setMaxPrice] = useState(getMaxPrice());
   const [sortField, setSortField] = useState("name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const productsPerPage = 10; // Products per page
 
   const filteredProducts = useMemo(() => {
     return products
@@ -38,6 +40,23 @@ function App() {
       });
   }, [selectedCategory, maxPrice, sortField, sortDirection]);
 
+  // get the total pages
+  const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
+
+  // get the current products of the page
+  const currentProducts = useMemo(() => {
+    const indexOfLastProduct = currentPage * productsPerPage;
+    const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
+    return filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
+  }, [filteredProducts, currentPage, productsPerPage]);
+
+  // change the page
+  const handlePageChange = (pageNumber: number) => {
+    setCurrentPage(pageNumber);
+    // Scroll to the top of the page
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const mostExpensiveProduct = useMemo(() => {
     return filteredProducts.length > 0
       ? getMostExpensiveProduct(filteredProducts)
@@ -47,6 +66,11 @@ function App() {
   const averagePrice = useMemo(() => {
     return filteredProducts.length > 0 ? getAveragePrice(filteredProducts) : 0;
   }, [filteredProducts]);
+
+  // Reset the filters
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCategory, maxPrice]);
 
   return (
     <div className="min-h-screen p-4 md:p-8 bg-gray-50">
@@ -74,14 +98,20 @@ function App() {
         />
 
         <ProductTable
-          products={filteredProducts}
+          products={currentProducts}
           sortField={sortField}
           sortDirection={sortDirection}
           setSortField={setSortField}
           setSortDirection={setSortDirection}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
         />
         <footer className="text-center text-gray-500 mt-8">
           Total products showing: {filteredProducts.length}
+          <p>
+            Mostrando página {currentPage} de {totalPages}
+          </p>
         </footer>
       </div>
     </div>
